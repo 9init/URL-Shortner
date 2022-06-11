@@ -73,7 +73,7 @@ Follow these steps to get started with your own instance of URL-Shortner
 
 This project is far from perfect, and we'll reach there one day, or at least get close.
 
-- [x] Add forgotten password-reset capabilities
+- [ ] Add forgotten password-reset capabilities
 - [ ] Adding extra features such as enabling or disabling tracking on certain links
 - [ ] Adding docker-compose supported quick installation
 - [ ] Track each and every click on a slug, and retrieve
