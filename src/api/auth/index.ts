@@ -14,7 +14,7 @@ router.use(passport.initialize())
 router.use(passport.session())
 
 // This middleware make sure that the user is authenticated
-function isLoggedIn(req: express.Request, res: express.Response, next: express.NextFunction){
+function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction){
     req.isAuthenticated() ? next() : res.send("You are not logged in")
 }
 
@@ -23,6 +23,6 @@ import {loginHandler, registerHandler, homeHandler} from "./passport"
 
 router.post("/login", loginHandler)
 router.post("/register", registerHandler)
-router.get("/home", isLoggedIn, homeHandler)
+router.get("/home", requireAuth, homeHandler)
 
-export { router }
+export { router, requireAuth }

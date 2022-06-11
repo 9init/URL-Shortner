@@ -5,7 +5,7 @@ import passport from "passport"
 import {Strategy as CustomStrategy} from "passport-custom"
 import * as User from "../../db/dal/User"
 import { UserOuput, UserInput } from "../../db/models/User"
-import { registerSchema } from "./helper"
+import { registerSchema } from "../helper"
 
 passport.use("stateless", new CustomStrategy(async (req, done)=>{
     // get the email and password that being sent by the client side
@@ -21,7 +21,7 @@ passport.use("stateless", new CustomStrategy(async (req, done)=>{
         if (!success) return done({ message: "Incorrect information." }) // return custom error message again
             return done(null, user) // Correct information
     } catch (error) {
-        if (error) return done(error) // return error message
+        if (error) return done(null, error) // return error message
     }
 
 }))
@@ -37,7 +37,7 @@ passport.deserializeUser((username: string, done)=>{
 })
 
 async function registerHandler(req: express.Request, res: express.Response) {
-    // you should validate them but I won't do this here
+    // validating the body
     let { fullname, email, username, password } = req.body
     let v = registerSchema.validate({ fullname, email, username, password })
     if(v.error) return res.status(403).json({error: v.error})
@@ -72,7 +72,7 @@ function homeHandler(req: express.Request, res: express.Response) {
     else res.send("You are not logged in")    
 }
 
-const loginHandler = passport.authenticate("stateless", {failureMessage: true, successRedirect: "/home"})
+const loginHandler = passport.authenticate("stateless", {failureFlash: true, successRedirect: "/home"})
 
 export {
     registerHandler,

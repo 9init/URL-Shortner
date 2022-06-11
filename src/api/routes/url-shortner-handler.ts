@@ -1,7 +1,7 @@
 import express from "express"
 import { nanoid } from "nanoid"
 import { isValidUrl } from "./utils"
-import * as UrlDal from "../../db/dal/UrlShortner"
+import { requireAuth } from "../auth"
 
 // The API base Url endpoint
 const baseUrl = process.env.BASE_URL
@@ -10,8 +10,10 @@ const baseUrl = process.env.BASE_URL
 const router = express.Router()
 
 // import the Url database model
-import {UrlShortner, UrlShortnerInput, UrlShortnerOuput} from "../../db/models/UrlShortner"
-import User, { UserOuput } from "../../db/models/User"
+import { ShortLink, ShortLinkInput, ShortLinkOuput} from "../../db/models/ShortLink"
+import * as UrlDal from "../../db/dal/ShortLink"
+import { UserOuput } from "../../db/models/User"
+import { updateLinkSchema } from "../helper"
 
 
 /**
@@ -27,17 +29,16 @@ router.post("/shorten", async (req: express.Request, res: express.Response)=>{
     let shortUrl = `${baseUrl}/${urlCode}`
 
     // create record body
-    let urlShortenBody: UrlShortnerInput = {
+    let urlShortenBody: ShortLinkInput = {
         urlCode: urlCode,
         shortUrl: shortUrl,
         longUrl: longUrl,
-        userId: req.isAuthenticated() ? (req.user as UserOuput).id : undefined
+        username: req.isAuthenticated() ? (req.user as UserOuput).username : undefined
     }
 
     // save to database
-    UrlShortner.create(urlShortenBody).then((value: UrlShortnerOuput)=>{
-        if(req.isAuthenticated()) shortUrl = `${baseUrl}/${(req.user as UserOuput).username}/${urlCode}`
-        res.json({urlCode, shortUrl, longUrl})
+    ShortLink.create(urlShortenBody).then((value: ShortLinkOuput)=>{
+        res.json(value)
     }).catch((error)=>{
         res.status(500).json({error: "Internal Server Error"})
     })
@@ -52,24 +53,46 @@ router.get("/:code", async (req: express.Request, res: express.Response)=>{
         // find a record match to the code in req.params.code
         let url = await UrlDal.findById(req.params.code)
         if (url) return res.redirect(url.longUrl)
-        else return res.status(404).json("No URL Found")
+        else return res.status(404).json({error: "No URL Found"})
     }catch (err) {
         res.status(500).json({error: "Internal Server Error"})
     }
 })
 
 /**
- * @route          GET /:userId/:code
- * @description    Redirect to the long/original URL 
+ * @route          GET /shortlinks
+ * @description    Return List of All User’s Short Links return empty list if have no link
  */
- router.get("/:username/:code", async (req: express.Request, res: express.Response)=>{
+ router.get("/shortlinks", async (req: express.Request, res: express.Response)=>{
     try {
-        // find a record match to the code in req.params.code
+        // get all records
         let url = await UrlDal.findByUsernameAndUrlId(req.params.username, req.params.code)
         if (url) return res.redirect(url.longUrl)
         else return res.status(404).json({error: "No URL Found"})
     }catch (err) {
         res.status(500).json({error: "Internal Server Error"})
+    }
+})
+
+/**
+ * @route          Put / {oldUrlCode, newUrlCode}
+ * @description    update the shortned link
+ */
+router.put("/", requireAuth, async (req: express.Request, res: express.Response)=>{
+    let { oldUrlCode, newUrlCode } = req.body
+    let v = updateLinkSchema.validate({oldUrlCode, newUrlCode})
+    if(v.error) return res.status(403).json({error: v})
+
+    try {
+        let payload = {
+            username: (req.user as UserOuput).username,
+            urlCode: newUrlCode,
+            shortUrl: `${baseUrl}/${newUrlCode}`,
+        }
+        let newData = await UrlDal.update(oldUrlCode, payload.username, payload)
+        res.json(newData)
+    } catch (error) {
+        res.status(403).json({error: "Slug Already In Use"})
     }
 })
 

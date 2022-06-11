@@ -1,31 +1,33 @@
 import { DataTypes, Model, Optional } from 'sequelize'
 import sequelizeConnection from '../config'
-import User from './User'
 
-interface UrlShortnerAttributes {
+interface ShortLinkAttributes {
+    id: number
     urlCode: string
     longUrl: string
     shortUrl: string
-    userId: string
+    username: string
 }
 
-interface UrlShortnerInput extends Optional<UrlShortnerAttributes, 'userId'> {}
-interface UrlShortnerOuput extends Required<UrlShortnerAttributes> {}
+interface ShortLinkInput extends Optional<ShortLinkAttributes, 'id'|'username'> {}
+interface ShortLinkOuput extends Required<ShortLinkAttributes> {}
 
-class UrlShortner extends Model<UrlShortnerAttributes, UrlShortnerInput>{
+class ShortLink extends Model<ShortLinkAttributes, ShortLinkInput>{
+    declare id: number
     declare urlCode: string
     declare longUrl: string
     declare shortUrl: string
-    declare userId: string
+    declare username: string
 
     // timestamps!
     declare readonly createdAt: Date
     declare readonly updatedAt: Date
 }
 
-UrlShortner.init({
-    urlCode: { type: DataTypes.STRING(8), primaryKey: true, allowNull: false },
-    userId: {type: DataTypes.STRING, allowNull: true },
+ShortLink.init({
+    id: {type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true},
+    urlCode: { type: DataTypes.STRING(8), allowNull: false },
+    username: {type: DataTypes.STRING, allowNull: true },
     longUrl: { type: DataTypes.TEXT, allowNull: false },
     shortUrl: { type: DataTypes.TEXT, allowNull: false }
 }, {
@@ -39,11 +41,11 @@ UrlShortner.init({
     indexes: [{ unique: true, fields: ['urlCode'] }]
 })
 
-UrlShortner.sync()
+ShortLink.sync()
 
 class Finders{
     static findOne(urlCode: string){
-        return UrlShortner.findOne({
+        return ShortLink.findOne({
             where: {
                 urlCode: urlCode
             }
@@ -52,10 +54,10 @@ class Finders{
 }
 
 export {
-    UrlShortnerInput,
-    UrlShortnerOuput,
-    UrlShortner
+    ShortLinkInput,
+    ShortLinkOuput,
+    ShortLink
 }
 
-export default UrlShortner
+export default ShortLink
 
